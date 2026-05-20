@@ -81,12 +81,24 @@ function buildInputOptions(options: InputOptionsArg): InputOptionsReturn {
     message?: string;
     id?: string;
     importer?: string;
+    plugin?: string;
   }) {
     if (log.code === "PLUGIN_TIMINGS") {
       return true;
     }
     if (log.code === "UNRESOLVED_IMPORT") {
       return normalizedLogHaystack(log).includes("extensions/");
+    }
+    // rolldown-plugin-dts 0.25+ warns once per zod locale `.d.cts` file when bundling
+    // the dts pass. zod is intentionally inlined (see #78515 / shouldAlwaysBundleDependency)
+    // and tsdown's external option cannot be scoped to dts only, so suppress the noise.
+    if (
+      log.code === "PLUGIN_WARNING" &&
+      log.plugin === "rolldown-plugin-dts:fake-js" &&
+      typeof log.message === "string" &&
+      log.message.includes("uses CommonJS dts syntax")
+    ) {
+      return true;
     }
     if (log.code !== "EVAL") {
       return false;
